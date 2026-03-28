@@ -1,0 +1,665 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<h2>Конфигуратор и конструктор шаблонов</h2>
+
+<div class="form">
+  <p class="help-text">Эта страница позволяет интерактивно заполнить данные инвойса и сгенерировать PDF для любого шаблона. Подсказки на русском, содержимое PDF следует вводить строго на английском.</p>
+
+  <div class="flex between">
+    <label style="flex:1">
+      Выбранный шаблон
+      <input id="template_label" value="{{ (selected_template.name ~ ' (' ~ selected_template.style.value ~ ')') if selected_template else ((templates[0].name ~ ' (' ~ templates[0].style.value ~ ')') if templates and templates|length > 0 else 'Modern Blue (modern)') }}" readonly />
+      <input id="template_id" type="hidden" value="{{ selected_template.id if selected_template else (templates[0].id if templates and templates|length > 0 else 'modern-blue') }}" />
+      <select id="template_select" style="margin-top:6px">
+        {% for t in templates %}
+        <option value="{{ t.id }}" {% if selected_template and selected_template.id == t.id %}selected{% endif %}>{{ t.name }} ({{ t.style.value }})</option>
+        {% endfor %}
+      </select>
+      <span class="help-text">Можно переключать между доступными шаблонами, включая термочек.</span>
+    </label>
+    <label style="flex:1">
+      Номер инвойса
+      <input id="invoice_number" placeholder="Например: INV-2024-001" />
+      <span class="help-text">Уникальный идентификатор счета.</span>
+    </label>
+  </div>
+
+  <!-- Панель выбора фона для шаблона CUSTOM -->
+  <div class="card" id="custom_bg_card" style="display:none; margin-top:12px">
+    <h3>Фон для шаблона CUSTOM</h3>
+    <p class="help-text">Выберите фоновое изображение по его ID из базы. Список автоматически пополняется при добавлении файлов в папку.</p>
+    <div class="flex between">
+      <label style="flex:2">
+        Background ID
+        <select id="background_id_select" style="margin-top:6px">
+          <option value="">(нет фона)</option>
+        </select>
+        <div class="actions" style="margin-top:8px">
+          <button class="button" id="refresh_bg_list_btn" title="Обновить список">Обновить список</button>
+          <a class="button" href="/admin/backgrounds" target="_blank">Управление фонами</a>
+        </div>
+        <span class="help-text">Идентификатор уникален и неизменяем. Для предпросмотра используется файл из /uploads/backgrounds.</span>
+      </label>
+      <label style="flex:1">
+        Предпросмотр фона
+        <img id="background_preview" alt="background preview" style="display:block; height:80px; max-width:100%; object-fit:cover; border:1px solid #1f2937; border-radius:6px; margin-top:6px" onerror="this.style.display='none'" />
+      </label>
+    </div>
+  </div>
+
+  <!-- Доп. параметры для термочека -->
+  <div class="flex between">
+    <label style="flex:1">
+      Валюта
+      <select id="currency">
+        <option value="$">$ (USD)</option>
+        <option value="€">€ (EUR)</option>
+        <option value="£">£ (GBP)</option>
+        <option value="₽">₽ (RUB)</option>
+        <option value="¥">¥ (JPY/CNY)</option>
+      </select>
+      <span class="help-text">Используется в термочеке для цен и итогов.</span>
+    </label>
+    <label style="flex:1">
+      Заголовок чека
+      <select id="receipt_title">
+        <option value="CHECK">CHECK</option>
+        <option value="RECEIPT">RECEIPT</option>
+      </select>
+      <span class="help-text">Большой заголовок и подпись в верхней строке.</span>
+    </label>
+    <label style="flex:1">
+      Ширина бумаги
+      <select id="paper_width_mm">
+        <option value="80">80 мм</option>
+        <option value="57">57 мм</option>
+      </select>
+      <span class="help-text">Для термопринтера: 57 мм или 80 мм.</span>
+    </label>
+  </div>
+
+  <div class="flex between">
+    <label style="flex:1">
+      Дата инвойса
+      <input id="invoice_date" type="datetime-local" />
+      <span class="help-text">Формат даты: YYYY-MM-DD HH:MM (локальное время).</span>
+    </label>
+    <label style="flex:1">
+      Срок оплаты
+      <input id="due_date" type="datetime-local" />
+      <span class="help-text">Формат даты: YYYY-MM-DD HH:MM (локальное время).</span>
+    </label>
+  </div>
+
+  <h3>Цвет заливки (RGB)</h3>
+  <div class="flex between">
+    <label style="flex:1">
+      Палитра
+      <input id="theme_color_hex" type="color" value="#34495e" title="Выберите цвет" />
+      <span class="help-text">HEX-палитра, синхронизируется с RGB ниже.</span>
+    </label>
+    <label style="flex:1">
+      R
+      <input id="theme_r" type="number" min="0" max="255" step="1" value="52" />
+    </label>
+    <label style="flex:1">
+      G
+      <input id="theme_g" type="number" min="0" max="255" step="1" value="73" />
+    </label>
+    <label style="flex:1">
+      B
+      <input id="theme_b" type="number" min="0" max="255" step="1" value="94" />
+    </label>
+  </div>
+
+  <h3>Компания</h3>
+  <div class="flex between">
+    <label style="flex:1">
+      Name (EN)
+      <input id="company_name" placeholder="Test Company Ltd" />
+    </label>
+    <label style="flex:1">
+      Address (EN)
+      <input id="company_address" placeholder="123 Business St" />
+    </label>
+  </div>
+  <div class="flex between">
+    <label style="flex:1">
+      Phone
+      <input id="company_phone" placeholder="+1-555-0123" />
+    </label>
+    <label style="flex:1">
+      Email
+      <input id="company_email" placeholder="test@company.com" />
+    </label>
+  </div>
+
+  <div class="flex between">
+    <label style="flex:1">
+      Logo URL
+      <input id="company_logo_url" placeholder="https://example.com/logo.png или /uploads/logos/file.png" />
+      <span class="help-text">Можно указать внешний URL. Не сохраняется на сервере.</span>
+    </label>
+    <label style="flex:1">
+      Загрузить логотип (PNG/JPG)
+      <input id="company_logo_file" type="file" accept="image/png,image/jpeg" />
+      <input id="company_logo_base64" type="hidden" />
+      <span class="help-text">Выбранный файл встраивается в PDF (до ~2MB).</span>
+    </label>
+  </div>
+  <div class="flex between">
+    <label style="flex:1">
+      Предпросмотр логотипа
+      <img id="company_logo_preview" alt="logo preview" style="height:20px; display:block; max-width:160px; object-fit:contain; margin-top:6px" onerror="this.style.display='none'" />
+    </label>
+  </div>
+
+  <h3>Клиент</h3>
+  <div class="flex between">
+    <label style="flex:1">
+      Name (EN)
+      <input id="client_name" placeholder="Client Corp" />
+    </label>
+    <label style="flex:1">
+      Address (EN)
+      <input id="client_address" placeholder="456 Client Ave" />
+    </label>
+  </div>
+  <div class="flex between">
+    <label style="flex:1">
+      Phone
+      <input id="client_phone" placeholder="+1-555-0456" />
+    </label>
+    <label style="flex:1">
+      Email
+      <input id="client_email" placeholder="client@corp.com" />
+    </label>
+  </div>
+
+  <h3>Товары/услуги</h3>
+  <table class="table" id="items_table">
+    <thead>
+      <tr>
+        <th>Description (EN)</th>
+        <th>Qty</th>
+        <th>Unit</th>
+        <th>Unit Price</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="items_body"></tbody>
+  </table>
+  <div class="actions">
+    <button class="button link" id="add_item_btn">+ Добавить позицию</button>
+  </div>
+
+  <div class="flex between">
+    <label style="flex:1">
+      Скидка (%)
+      <input id="discount_rate" type="number" inputmode="decimal" min="0" max="100" step="0.1" placeholder="10" title="Допустимый диапазон: 0–100" />
+      <span class="help-text">Скидка в процентах. Используйте десятичные значения при необходимости.</span>
+    </label>
+    <label style="flex:1">
+      Налог (%)
+      <input id="tax_rate" type="number" inputmode="decimal" min="0" max="100" step="0.1" placeholder="8.5" title="Допустимый диапазон: 0–100" />
+      <span class="help-text">Налоговая ставка в процентах. Используйте десятичные значения при необходимости.</span>
+    </label>
+  </div>
+
+  <div class="actions">
+    <button class="button primary" id="generate_btn">Сгенерировать PDF</button>
+    <button class="button" id="copy_json_btn">Скопировать JSON</button>
+    <a class="button" href="/admin/uploads" title="Загрузить логотип">Загрузки логотипов</a>
+  </div>
+</div>
+
+<div class="card" id="result_card" style="display:none">
+  <h3>Результат</h3>
+  <p id="result_status"></p>
+  <p><a id="result_link" href="#" target="_blank">Открыть PDF</a></p>
+  <div id="embed" style="height:600px">
+    <!-- Предпросмотр PDF в iframe/object -->
+  </div>
+</div>
+
+<script>
+  // Подсказки: поля и комментарии на русском, содержимое PDF вводите на английском.
+
+  const itemsBody = document.getElementById('items_body');
+  const addItemBtn = document.getElementById('add_item_btn');
+  const generateBtn = document.getElementById('generate_btn');
+  const copyJsonBtn = document.getElementById('copy_json_btn');
+  const resultCard = document.getElementById('result_card');
+  const resultStatus = document.getElementById('result_status');
+  const resultLink = document.getElementById('result_link');
+  const embed = document.getElementById('embed');
+
+  function addItemRow(desc = 'Web Development Services', qty = 1, price = 100, unit = 'pcs') {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input placeholder="Description" value="${desc}" maxlength="120" /></td>
+      <td><input class="qty-input" type="number" inputmode="decimal" min="0" max="100000" step="${unit==='pcs'?'1':(unit==='hour'?'0.25':'0.001')}" value="${qty}" /></td>
+      <td>
+        <select class="unit-select">
+          <option value="pcs" ${unit==='pcs'?'selected':''}>шт (pcs)</option>
+          <option value="kg" ${unit==='kg'?'selected':''}>кг (kg)</option>
+          <option value="g" ${unit==='g'?'selected':''}>г (g)</option>
+          <option value="lb" ${unit==='lb'?'selected':''}>фунт (lb)</option>
+          <option value="oz" ${unit==='oz'?'selected':''}>унц (oz)</option>
+          <option value="m" ${unit==='m'?'selected':''}>метр (m)</option>
+          <option value="cm" ${unit==='cm'?'selected':''}>см (cm)</option>
+          <option value="ft" ${unit==='ft'?'selected':''}>фут (ft)</option>
+          <option value="in" ${unit==='in'?'selected':''}>дюйм (in)</option>
+          <option value="l" ${unit==='l'?'selected':''}>литр (l)</option>
+          <option value="ml" ${unit==='ml'?'selected':''}>мл (ml)</option>
+          <option value="gal" ${unit==='gal'?'selected':''}>галлон (gal)</option>
+          <option value="qt" ${unit==='qt'?'selected':''}>кварта (qt)</option>
+          <option value="hour" ${unit==='hour'?'selected':''}>час (hour)</option>
+        </select>
+      </td>
+      <td><input class="price-input" type="number" inputmode="decimal" min="0" max="10000000" step="0.01" value="${price}" /></td>
+      <td><button class='link danger'>Удалить</button></td>
+    `;
+    tr.querySelector('button').addEventListener('click', () => tr.remove());
+    // Динамический шаг количества в зависимости от единицы
+    const unitSel = tr.querySelector('select.unit-select');
+    const qtyInput = tr.querySelector('.qty-input');
+    const priceInput = tr.querySelector('.price-input');
+    const setQtyStep = () => {
+      const u = unitSel?.value || 'pcs';
+      qtyInput.step = (u === 'pcs') ? '1' : (u === 'hour' ? '0.25' : '0.001');
+      qtyInput.min = (u === 'pcs') ? '1' : (u === 'hour' ? '0.25' : '0.001');
+    };
+    setQtyStep();
+    unitSel.addEventListener('change', setQtyStep);
+    // Санитизация ввода чисел: убираем буквы и лишние символы
+    const sanitizeNumber = (inp) => {
+      const v = String(inp.value || '');
+      const cleaned = v.replace(',', '.').replace(/[^0-9.]/g, '');
+      if (v !== cleaned) inp.value = cleaned;
+    };
+    qtyInput.addEventListener('input', () => sanitizeNumber(qtyInput));
+    priceInput.addEventListener('input', () => sanitizeNumber(priceInput));
+    itemsBody.appendChild(tr);
+  }
+
+  addItemBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    addItemRow('Design Consultation', 1, 50);
+  });
+
+  // Добавляем 2 строки по умолчанию
+  addItemRow('Web Development Services', 10, 150, 'hour');
+  addItemRow('Design Consultation', 5, 100, 'hour');
+
+  // Логика загрузки логотипа: URL или файл -> base64
+  const logoUrlEl = document.getElementById('company_logo_url');
+  const logoFileEl = document.getElementById('company_logo_file');
+  const logoB64El = document.getElementById('company_logo_base64');
+  const logoPreviewEl = document.getElementById('company_logo_preview');
+
+  function handleLogoUrlChange() {
+    const url = (logoUrlEl.value || '').trim();
+    if (url) {
+      // При указании URL сбрасываем base64
+      logoB64El.value = '';
+      logoPreviewEl.style.display = 'block';
+      logoPreviewEl.src = url;
+    } else {
+      logoPreviewEl.style.display = 'none';
+      logoPreviewEl.src = '';
+    }
+  }
+
+  async function handleLogoFileChange(ev) {
+    const f = ev.target.files && ev.target.files[0];
+    if (!f) return;
+    // Ограничение размера: до ~2MB
+    const MAX = 2 * 1024 * 1024;
+    if (f.size > MAX) {
+      alert('Логотип слишком большой (макс ~2MB)');
+      ev.target.value = '';
+      return;
+    }
+    // Типы: PNG/JPEG
+    if (!/^image\/(png|jpeg)$/.test(f.type)) {
+      alert('Поддерживаются PNG и JPG');
+      ev.target.value = '';
+      return;
+    }
+    // Читаем как data URL и сохраняем в скрытое поле
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      logoB64El.value = String(dataUrl || '');
+      // При выборе файла очищаем URL
+      logoUrlEl.value = '';
+      logoPreviewEl.style.display = 'block';
+      logoPreviewEl.src = dataUrl;
+    };
+    reader.onerror = () => {
+      alert('Не удалось прочитать файл логотипа');
+    };
+    reader.readAsDataURL(f);
+  }
+
+  logoUrlEl.addEventListener('input', handleLogoUrlChange);
+  logoFileEl.addEventListener('change', handleLogoFileChange);
+
+  function getISO(dtLocalValue) {
+    if (!dtLocalValue) return null;
+    // Нормализуем значения datetime-local: допускаем пробел или отсутствие секунд
+    let s = String(dtLocalValue).trim();
+    s = s.replace(' ', 'T');
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)) {
+      s += ':00';
+    }
+    const d = new Date(s);
+    if (isNaN(d.getTime())) {
+      // Если дата не распарсилась, вернём null — выше будет фоллбек
+      return null;
+    }
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0,19);
+  }
+
+  function buildPayload() {
+    const app_id = 'contractor-app';
+    const user_id = 'admin-user-001';
+    const template_id = document.getElementById('template_id').value;
+    const invoice_number = document.getElementById('invoice_number').value || 'INV-TEST-001';
+    const invoice_date = getISO(document.getElementById('invoice_date').value) || new Date().toISOString().slice(0,19);
+    const due_date = getISO(document.getElementById('due_date').value) || null;
+
+    const company = {
+      name: document.getElementById('company_name').value || 'Test Company Ltd',
+      address: document.getElementById('company_address').value || '123 Business St',
+      phone: document.getElementById('company_phone').value || '+1-555-0123',
+      email: document.getElementById('company_email').value || 'test@company.com',
+      ...(document.getElementById('company_logo_url').value?.trim() ? { logo_url: document.getElementById('company_logo_url').value.trim() } : {}),
+      ...(document.getElementById('company_logo_base64').value?.trim() ? { logo_base64: document.getElementById('company_logo_base64').value.trim() } : {}),
+    };
+    const client = {
+      name: document.getElementById('client_name').value || 'Client Corp',
+      address: document.getElementById('client_address').value || '456 Client Ave',
+      phone: document.getElementById('client_phone').value || '+1-555-0456',
+      email: document.getElementById('client_email').value || 'client@corp.com',
+    };
+
+    const items = Array.from(itemsBody.querySelectorAll('tr')).map(tr => {
+      const inputs = tr.querySelectorAll('input');
+      const unitSel = tr.querySelector('select.unit-select');
+      const desc = (inputs[0].value || 'Item').trim();
+      const qty = parseFloat(inputs[1].value || '1');
+      const price = parseFloat(inputs[2].value || '0');
+      return {
+        description: desc,
+        quantity: qty,
+        unit: (unitSel && unitSel.value) || 'pcs',
+        unit_price: price,
+      };
+    });
+
+    const clampPercent = (val) => {
+      const num = typeof val === 'number' ? val : parseFloat(val);
+      if (isNaN(num)) return 0;
+      return Math.min(100, Math.max(0, num));
+    };
+    const discount_rate_input = document.getElementById('discount_rate').value || '0';
+    const tax_rate_input = document.getElementById('tax_rate').value || '0';
+    const discount_rate_raw = parseFloat(discount_rate_input);
+    const tax_rate_raw = parseFloat(tax_rate_input);
+    const discount_rate = clampPercent(discount_rate_raw);
+    const tax_rate = clampPercent(tax_rate_raw);
+    const warnings = [];
+    if (!isNaN(discount_rate_raw) && discount_rate_raw !== discount_rate) warnings.push(`Скидка скорректирована до ${discount_rate}% (0–100)`);
+    if (!isNaN(tax_rate_raw) && tax_rate_raw !== tax_rate) warnings.push(`Налог скорректирован до ${tax_rate}% (0–100)`);
+    if (warnings.length) {
+      const prev = resultStatus.textContent || '';
+      resultStatus.textContent = `${prev}${prev ? ' ' : ''}Внимание: ${warnings.join('; ')}`;
+    }
+
+    // Собираем цвет темы из HEX/RGB и приводим к строке 'rgb(r,g,b)'
+    const themeHexEl = document.getElementById('theme_color_hex');
+    const themeREl = document.getElementById('theme_r');
+    const themeGEl = document.getElementById('theme_g');
+    const themeBEl = document.getElementById('theme_b');
+    const clamp255c = (n) => Math.min(255, Math.max(0, parseInt((n ?? '0'), 10)));
+    const hexToRgbLocal = (h) => {
+      const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec((h || '').trim());
+      if (!m) return { r: 52, g: 73, b: 94 };
+      return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+    };
+    const hex = (themeHexEl?.value || '#34495e').trim();
+    const r = clamp255c(themeREl?.value);
+    const g = clamp255c(themeGEl?.value);
+    const b = clamp255c(themeBEl?.value);
+    const rgbInputsInvalid = [r, g, b].some(v => Number.isNaN(v));
+    const rgb = rgbInputsInvalid ? hexToRgbLocal(hex) : { r, g, b };
+    const theme_color = `rgb(${rgb.r},${rgb.g},${rgb.b})`;
+
+    // Параметры термочека
+    const currency = (document.getElementById('currency')?.value || '$');
+    const receipt_title = (document.getElementById('receipt_title')?.value || 'CHECK');
+    const paper_width_mm = parseInt(document.getElementById('paper_width_mm')?.value || '80', 10);
+
+    // Определяем, выбран ли шаблон CUSTOM, чтобы добавить meta.background_id
+    const opt = (templateSelect && templateSelect.options[templateSelect.selectedIndex]) || null;
+    const isCustomStyle = !!(opt && /\(custom\)/i.test(String(opt.textContent || '')));
+    const bgSelect = document.getElementById('background_id_select');
+    const selectedBackgroundId = (bgSelect && bgSelect.value) ? bgSelect.value : '';
+    const meta = isCustomStyle ? { background_id: (selectedBackgroundId || null) } : {};
+
+    return {
+      invoice_data: {
+        app_id,
+        user_id,
+        template_id,
+        invoice_number,
+        invoice_date,
+        due_date,
+        company,
+        client,
+        items,
+        discount_rate,
+        tax_rate,
+        theme_color,
+        currency,
+        receipt_title,
+        paper_width_mm,
+        meta,
+      },
+      async_generation: false,
+    };
+  }
+
+  // Переключение шаблонов в конфигураторе
+  const templateSelect = document.getElementById('template_select');
+  const templateLabel = document.getElementById('template_label');
+  const templateIdInput = document.getElementById('template_id');
+  if (templateSelect && templateLabel && templateIdInput) {
+    const applySelected = () => {
+      const opt = templateSelect.options[templateSelect.selectedIndex];
+      if (opt) {
+        templateIdInput.value = opt.value;
+        templateLabel.value = opt.textContent;
+        // Показываем/скрываем панель выбора фона для CUSTOM
+        const isCustom = /\(custom\)/i.test(String(opt.textContent || ''));
+        const card = document.getElementById('custom_bg_card');
+        if (card) card.style.display = isCustom ? 'block' : 'none';
+        if (isCustom) {
+          // При первом показе — загрузим список фонов, если он пуст
+          const sel = document.getElementById('background_id_select');
+          if (sel && sel.options.length <= 1) {
+            loadBackgrounds();
+          }
+        }
+      }
+    };
+    applySelected();
+    templateSelect.addEventListener('change', applySelected);
+  }
+
+  generateBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    // Валидация ввода перед формированием payload
+    const rows = Array.from(itemsBody.querySelectorAll('tr'));
+    const errors = [];
+    rows.forEach((tr, idx) => {
+      const inputs = tr.querySelectorAll('input');
+      const unitSel = tr.querySelector('select.unit-select');
+      const desc = (inputs[0].value || '').trim();
+      const qtyRaw = inputs[1].value || '';
+      const priceRaw = inputs[2].value || '';
+      const unit = (unitSel && unitSel.value) || 'pcs';
+      const qty = parseFloat(qtyRaw);
+      const price = parseFloat(priceRaw);
+      if (desc.length < 1 || desc.length > 120) errors.push(`Строка ${idx+1}: описание должно быть 1–120 символов`);
+      if (!Number.isFinite(qty) || qty <= 0) errors.push(`Строка ${idx+1}: количество должно быть числом > 0`);
+      if (unit === 'pcs' && Number.isFinite(qty) && Math.floor(qty) !== qty) errors.push(`Строка ${idx+1}: для pcs количество должно быть целым и ≥ 1`);
+      if (!Number.isFinite(price) || price < 0) errors.push(`Строка ${idx+1}: цена должна быть числом ≥ 0`);
+    });
+    if (errors.length) {
+      resultCard.style.display = 'block';
+      resultStatus.textContent = 'Ошибка ввода: ' + errors.join('; ');
+      return;
+    }
+    const payload = buildPayload();
+    resultCard.style.display = 'block';
+    resultStatus.textContent = 'Генерация...';
+    embed.innerHTML = '';
+    try {
+      const res = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        try {
+          const err = JSON.parse(text);
+          const details = Array.isArray(err.detail) ? err.detail : [];
+          const msg = details.length
+            ? details.map(d => `${(d.loc || []).join('.')}: ${d.msg}`).join('; ')
+            : (err.message || text);
+          resultStatus.textContent = `Ошибка: ${msg}`;
+        } catch (_) {
+          resultStatus.textContent = `Ошибка: ${text}`;
+        }
+        return;
+      }
+      const data = await res.json();
+      resultStatus.textContent = `Статус: ${data.status}`;
+      resultLink.href = data.pdf_url || '#';
+      resultLink.textContent = 'Открыть PDF';
+      if (data.pdf_url) {
+        embed.innerHTML = `<iframe src="${data.pdf_url}" style="width:100%;height:100%;border:1px solid #1f2937;border-radius:8px"></iframe>`;
+      }
+    } catch (err) {
+      resultStatus.textContent = 'Ошибка: ' + (err.message || err);
+    }
+  });
+
+  copyJsonBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const payload = buildPayload();
+    const text = JSON.stringify(payload, null, 2);
+    try {
+      await navigator.clipboard.writeText(text);
+      alert('JSON скопирован в буфер обмена');
+    } catch {
+      // Фоллбек
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+      alert('JSON скопирован (fallback)');
+    }
+  });
+
+  // Синхронизация HEX↔RGB
+  const themeHex = document.getElementById('theme_color_hex');
+  const themeR = document.getElementById('theme_r');
+  const themeG = document.getElementById('theme_g');
+  const themeB = document.getElementById('theme_b');
+  const rgbToHex = (r, g, b) => {
+    const toHex = (n) => clamp255(n).toString(16).padStart(2, '0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  };
+  const clamp255 = (n) => Math.min(255, Math.max(0, parseInt(n||'0',10)));
+  const hexToRgbSync = (h) => {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
+    if (!m) return { r: 52, g: 73, b: 94 };
+    return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+  };
+  themeHex.addEventListener('input', () => {
+    const rgb = hexToRgbSync(themeHex.value);
+    themeR.value = rgb.r; themeG.value = rgb.g; themeB.value = rgb.b;
+  });
+  [themeR, themeG, themeB].forEach(inp => inp.addEventListener('input', () => {
+    const r = clamp255(themeR.value), g = clamp255(themeG.value), b = clamp255(themeB.value);
+    themeHex.value = rgbToHex(r, g, b);
+  }));
+
+  // Загрузка и управление списком фонов
+  let backgroundsCache = [];
+  async function loadBackgrounds() {
+    try {
+      const res = await fetch('/api/backgrounds');
+      if (!res.ok) throw new Error(await res.text());
+      const list = await res.json();
+      backgroundsCache = Array.isArray(list) ? list : [];
+      const sel = document.getElementById('background_id_select');
+      if (!sel) return;
+      // Сохраняем текущий выбор
+      const prev = sel.value;
+      // Перестраиваем список
+      sel.innerHTML = '<option value="">(нет фона)</option>';
+      backgroundsCache.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = String(b.id);
+        opt.textContent = `${b.id} — ${b.filename || ''}`;
+        sel.appendChild(opt);
+      });
+      // Восстанавливаем выбор, если существует
+      if (prev) {
+        sel.value = prev;
+      }
+      updateBackgroundPreview();
+    } catch (e) {
+      console.warn('Не удалось загрузить список фонов:', e);
+      const sel = document.getElementById('background_id_select');
+      if (sel && sel.options.length === 0) {
+        sel.innerHTML = '<option value="">(нет фона)</option>';
+      }
+    }
+  }
+
+  function updateBackgroundPreview() {
+    const sel = document.getElementById('background_id_select');
+    const img = document.getElementById('background_preview');
+    if (!sel || !img) return;
+    const id = sel.value;
+    if (!id) {
+      img.style.display = 'none';
+      img.src = '';
+      return;
+    }
+    const found = backgroundsCache.find(b => String(b.id) === String(id));
+    if (found && found.filename) {
+      img.src = `/uploads/backgrounds/${found.filename}`;
+      img.style.display = 'block';
+    } else {
+      img.style.display = 'none';
+      img.src = '';
+    }
+  }
+
+  const bgSelEl = document.getElementById('background_id_select');
+  if (bgSelEl) {
+    bgSelEl.addEventListener('change', updateBackgroundPreview);
+  }
+  const refreshBtn = document.getElementById('refresh_bg_list_btn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', (e) => { e.preventDefault(); loadBackgrounds(); });
+  }
+</script>
+{% endblock %}

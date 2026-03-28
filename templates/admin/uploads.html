@@ -1,0 +1,27 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<h2>Загруженные логотипы</h2>
+<p class="help-text">Подсказка: загружайте изображения PNG/JPG до ~2 МБ. После загрузки логотип доступен по адресу /uploads/logos/&lt;имя_файла&gt; и может быть использован как logo_url в запросе генерации.</p>
+<table class="table">
+  <thead>
+    <tr>
+      <th>Файл</th>
+      <th>Размер (КБ)</th>
+      <th>Дата</th>
+      <th>Предпросмотр</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for f in files %}
+    <tr>
+      <td>{{ f.name }}</td>
+      <td>{{ f.size_kb }}</td>
+      <td>{{ f.mtime }}</td>
+      <td>
+        <img src="/uploads/logos/{{ f.name }}" alt="logo" title="Предпросмотр логотипа" style="height:40px" onerror="this.style.display='none'" />
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

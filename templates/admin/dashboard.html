@@ -1,0 +1,26 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<h2>Общая статистика</h2>
+<div class="grid">
+  <div class="card">
+    <h3>Всего шаблонов</h3>
+    <p class="stat">{{ templates_count }}</p>
+  </div>
+  <div class="card">
+    <h3>Бесплатные</h3>
+    <p class="stat">{{ free_count }}</p>
+  </div>
+  <div class="card">
+    <h3>Премиум</h3>
+    <p class="stat">{{ premium_count }}</p>
+  </div>
+  <div class="card">
+    <h3>Сгенерированные PDF</h3>
+    <p class="stat">{{ invoices_count }}</p>
+  </div>
+  <div class="card">
+    <h3>Загруженные логотипы</h3>
+    <p class="stat">{{ logos_count }}</p>
+  </div>
+</div>
+{% endblock %}

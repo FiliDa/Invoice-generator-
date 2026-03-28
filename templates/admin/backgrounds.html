@@ -1,0 +1,85 @@
+{% extends "admin/base.html" %}
+{% block title %}Фоновые изображения{% endblock %}
+
+{% block content %}
+<section class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h4">Управление фонами</h2>
+    <form action="/admin/backgrounds/scan" method="post">
+      <button class="btn btn-outline-primary" type="submit">Сканировать источник</button>
+    </form>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <form action="/admin/backgrounds/upload" method="post" enctype="multipart/form-data" class="row g-3">
+        <div class="col-auto">
+          <input type="file" name="file" accept="image/png,image/jpeg" class="form-control" required>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-success" type="submit">Загрузить фон</button>
+        </div>
+        <div class="col">
+          <small class="text-muted">Поддержка PNG/JPG. ID генерируется автоматически, фон появляется в списке ниже.</small>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if backgrounds and backgrounds|length > 0 %}
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for bg in backgrounds %}
+    <div class="col">
+      <div class="card h-100 shadow-sm">
+        {% if bg.url %}
+          <img src="{{ bg.url }}" class="card-img-top" alt="preview" style="max-height:220px; object-fit:cover;">
+        {% else %}
+          <div class="card-img-top d-flex align-items-center justify-content-center bg-light" style="height:220px;">
+            <span class="text-muted">Нет превью</span>
+          </div>
+        {% endif %}
+        <div class="card-body">
+          <div class="mb-2">
+            <span class="badge text-bg-secondary">ID</span>
+            <code id="bg-id-{{ bg.id }}">{{ bg.id }}</code>
+            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyId('{{ bg.id }}')">Копировать ID</button>
+          </div>
+          <div class="small text-muted">Файл: {{ bg.filename }}</div>
+          <div class="small text-muted">Размер: {{ (bg.size_bytes / 1024)|round(1) }} KB</div>
+          <div class="small text-muted">Создан: {{ bg.created_at }}</div>
+        </div>
+        <div class="card-footer d-flex justify-content-between">
+          <a class="btn btn-sm btn-outline-primary" href="{{ bg.url }}" target="_blank">Открыть</a>
+          <form action="/admin/backgrounds/{{ bg.id }}/delete" method="post" onsubmit="return confirm('Удалить фон?');">
+            <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <p class="text-muted">Фоны отсутствуют. Загрузите изображение или выполните сканирование источника.</p>
+  {% endif %}
+</section>
+
+<script>
+function copyId(id) {
+  try {
+    navigator.clipboard.writeText(id);
+    alert('ID скопирован: ' + id);
+  } catch (e) {
+    const el = document.getElementById('bg-id-' + id);
+    if (el) {
+      const range = document.createRange();
+      range.selectNode(el);
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+      document.execCommand('copy');
+      window.getSelection().removeAllRanges();
+      alert('ID скопирован: ' + id);
+    }
+  }
+}
+</script>
+{% endblock %}

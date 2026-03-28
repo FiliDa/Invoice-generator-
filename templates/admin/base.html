@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Админка — Invoice Maker</title>
+  <link rel="stylesheet" href="/static/admin.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <h1>Админ-панель</h1>
+      <nav>
+        <a href="/admin">Главная</a>
+        <a href="/admin/templates">Шаблоны</a>
+        <a href="/admin/configurator">Конфигуратор</a>
+        <a href="/admin/generations">Генерации</a>
+        <a href="/admin/invoices">Инвойсы</a>
+        <a href="/admin/uploads">Загрузки</a>
+        <a href="/admin/backgrounds">Фоны</a>
+      </nav>
+    </div>
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="footer">
+    <div class="container">
+      <small>Invoice Maker for Contractors © {{ now if now else '' }}</small>
+    </div>
+  </footer>
+</body>
+</html>

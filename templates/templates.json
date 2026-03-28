@@ -1,0 +1,91 @@
+[
+  {
+    "id": "modern-blue",
+    "name": "Modern Blue",
+    "style": "modern",
+    "description": "Современный синий шаблон с чистым дизайном",
+    "preview_url": "/static/previews/modern-blue.png",
+    "is_premium": false,
+    "table_header_fill": "#34495e",
+    "table_cell_fill": "#f8f9fa",
+    "table_border_color": "#000000"
+  },
+  {
+    "id": "thermal-receipt",
+    "name": "Thermal Receipt",
+    "style": "thermal",
+    "description": "Чек для термопринтера 80мм с простым оформлением",
+    "preview_url": "/static/previews/thermal-receipt.png",
+    "is_premium": false,
+    "table_header_fill": "#34495e",
+    "table_cell_fill": "#f8f9fa",
+    "table_border_color": "#000000"
+  },
+  {
+    "id": "custom-background",
+    "name": "Custom Background Template",
+    "style": "custom",
+    "description": "Пользовательский шаблон с цветным фоном на основе invoice_9683.pdf",
+    "preview_url": "/static/previews/custom-background.png",
+    "is_premium": false,
+    "table_header_fill": "#34495e",
+    "table_cell_fill": "#f8f9fa",
+    "table_border_color": "#000000"
+  }
+  ,
+  {
+    "id": "invoice-it-consultant",
+    "name": "IT Consultant",
+    "style": "it_pro",
+    "description": "Профессиональный техно-стиль для IT/консалтинга",
+    "preview_url": "/static/previews/invoice-it-consultant.png",
+    "is_premium": false,
+    "table_header_fill": "#34495e",
+    "table_cell_fill": "#f8f9fa",
+    "table_border_color": "#000000"
+  },
+  {
+    "id": "invoice-medical-biller",
+    "name": "Medical Billing",
+    "style": "medical_pro",
+    "description": "Медицинский шаблон с кодами услуг и страховыми полями",
+    "preview_url": "/static/previews/invoice-medical-biller.png",
+    "is_premium": false,
+    "table_header_fill": "#34495e",
+    "table_cell_fill": "#f8f9fa",
+    "table_border_color": "#000000"
+  },
+  {
+    "id": "invoice-construction-manager",
+    "name": "Construction Manager",
+    "style": "construction_pro",
+    "description": "Строительный шаблон: объект, этапы работ, акцентные блоки",
+    "preview_url": "/static/previews/invoice-construction-manager.png",
+    "is_premium": false,
+    "table_header_fill": "#34495e",
+    "table_cell_fill": "#f8f9fa",
+    "table_border_color": "#000000"
+  },
+  {
+    "id": "invoice-creative-designer",
+    "name": "Creative Designer",
+    "style": "creative_pro",
+    "description": "Креативный шаблон с выразительной типографикой и акцентами",
+    "preview_url": "/static/previews/invoice-creative-designer.png",
+    "is_premium": false,
+    "table_header_fill": "#34495e",
+    "table_cell_fill": "#f8f9fa",
+    "table_border_color": "#000000"
+  },
+  {
+    "id": "invoice-lawyer",
+    "name": "Lawyer / Attorney",
+    "style": "legal_pro",
+    "description": "Строгий юридический шаблон с номером дела",
+    "preview_url": "/static/previews/invoice-lawyer.png",
+    "is_premium": false,
+    "table_header_fill": "#34495e",
+    "table_cell_fill": "#f8f9fa",
+    "table_border_color": "#000000"
+  }
+]

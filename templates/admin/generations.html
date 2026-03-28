@@ -1,0 +1,32 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<h2>Статусы генераций</h2>
+<table class="table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Статус</th>
+      <th>Прогресс</th>
+      <th>PDF</th>
+      <th>Создано</th>
+      <th>Завершено</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for g in generations %}
+    <tr>
+      <td>{{ g.generation_id }}</td>
+      <td>{{ g.status }}</td>
+      <td>{{ g.progress if g.progress is not none else '-' }}</td>
+      <td>
+        {% if g.pdf_url %}
+        <a href="{{ g.pdf_url }}" target="_blank">Скачать</a>
+        {% else %}-{% endif %}
+      </td>
+      <td>{{ g.created_at }}</td>
+      <td>{{ g.completed_at if g.completed_at else '-' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

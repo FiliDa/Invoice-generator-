@@ -1,0 +1,112 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<h2>{{ 'Создание шаблона' if mode == 'create' else 'Редактирование шаблона' }}</h2>
+
+<p class="help-text">Внимание: текст в самом PDF (например, Subtotal, Tax, Total) остаётся строго на английском. Ниже приведены подсказки на русском только для формы админки.</p>
+
+<form action="{{ '/admin/templates/new' if mode == 'create' else '/admin/templates/' + template.id + '/edit' }}" method="post" class="form">
+  {% if mode == 'create' %}
+  <label>
+    ID
+    <input type="text" name="id" required title="Уникальный идентификатор шаблона (латиница, без пробелов)" />
+    <small class="help-text">Укажите латинскими буквами и цифрами; используется внутри системы.</small>
+  </label>
+  {% endif %}
+
+  <label>
+    Название
+    <input type="text" name="name" value="{{ template.name if template else '' }}" required title="Название для отображения в админке" />
+    <small class="help-text">Человекочитаемое имя шаблона, видно только в админке.</small>
+  </label>
+
+  <label>
+    Стиль
+    <select name="style" required>
+      {% for s in styles %}
+      <option value="{{ s }}" {% if template and template.style.value == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <small class="help-text">Выберите стиль рендеринга PDF. Наименования стилей — на английском.</small>
+  </label>
+
+  <label>
+    Описание
+    <textarea name="description" title="Короткое описание шаблона для админки">{{ template.description if template else '' }}</textarea>
+    <small class="help-text">Опционально. Не влияет на содержимое PDF.</small>
+  </label>
+
+  <label>
+    Preview URL
+    <input type="text" name="preview_url" value="{{ template.preview_url if template else '' }}" title="Ссылка на изображение предпросмотра (опционально)" />
+    <small class="help-text">Например: /static/previews/modern_blue.png</small>
+  </label>
+
+  <label class="checkbox">
+    <input type="checkbox" name="is_premium" {% if template and template.is_premium %}checked{% endif %} title="Отметьте, если шаблон должен быть премиум" /> Премиум
+    <small class="help-text">Влияет на доступность шаблона для пользователей.</small>
+  </label>
+
+  <hr style="border:none;border-top:1px solid #1f2937;margin:16px 0" />
+  <h3 style="margin-top:0">Настройки цветов таблицы</h3>
+  <p class="help-text">Вы можете задать цвета заливки и прозрачность для заголовков, обычных ячеек и границ таблицы. HEX или rgba(r,g,b,a) поддерживаются. Прозрачность: 0.0–1.0.</p>
+
+  <div class="flex">
+    <label style="flex:1">
+      Цвет заголовка (палитра)
+      <input type="color" id="table_header_picker" value="{{ template.table_header_fill if template and template.table_header_fill and template.table_header_fill.startswith('#') else '#34495e' }}" oninput="document.getElementById('table_header_fill').value = this.value" />
+      <small class="help-text">Быстрый выбор цвета для заголовочных ячеек.</small>
+    </label>
+    <label style="flex:1">
+      Цвет заголовка (HEX/rgba)
+      <input type="text" name="table_header_fill" id="table_header_fill" value="{{ template.table_header_fill if template else '' }}" placeholder="#34495e или rgba(52,73,94,0.85)" />
+      <small class="help-text">Введите HEX (#RRGGBB) или rgba(r,g,b,a).</small>
+    </label>
+    <label style="flex:1">
+      Прозрачность заголовка
+      <input type="number" name="table_header_alpha" step="0.01" min="0" max="1" value="{{ template.table_header_alpha if template and template.table_header_alpha is not none else '' }}" placeholder="0.85" />
+      <small class="help-text">0.0 (прозрачно) – 1.0 (непрозрачно). По умолчанию 0.85.</small>
+    </label>
+  </div>
+
+  <div class="flex" style="margin-top:12px">
+    <label style="flex:1">
+      Цвет ячеек (палитра)
+      <input type="color" id="table_cell_picker" value="{{ template.table_cell_fill if template and template.table_cell_fill and template.table_cell_fill.startswith('#') else '#f8f9fa' }}" oninput="document.getElementById('table_cell_fill').value = this.value" />
+      <small class="help-text">Быстрый выбор для обычных ячеек.</small>
+    </label>
+    <label style="flex:1">
+      Цвет ячеек (HEX/rgba)
+      <input type="text" name="table_cell_fill" id="table_cell_fill" value="{{ template.table_cell_fill if template else '' }}" placeholder="#f8f9fa или rgba(248,249,250,0.75)" />
+      <small class="help-text">Введите HEX (#RRGGBB) или rgba(r,g,b,a).</small>
+    </label>
+    <label style="flex:1">
+      Прозрачность ячеек
+      <input type="number" name="table_cell_alpha" step="0.01" min="0" max="1" value="{{ template.table_cell_alpha if template and template.table_cell_alpha is not none else '' }}" placeholder="0.75" />
+      <small class="help-text">0.0 – 1.0. По умолчанию 0.75.</small>
+    </label>
+  </div>
+
+  <div class="flex" style="margin-top:12px">
+    <label style="flex:1">
+      Цвет границ (палитра)
+      <input type="color" id="table_border_picker" value="{{ template.table_border_color if template and template.table_border_color and template.table_border_color.startswith('#') else '#1f2937' }}" oninput="document.getElementById('table_border_color').value = this.value" />
+      <small class="help-text">Быстрый выбор цвета линий таблицы.</small>
+    </label>
+    <label style="flex:1">
+      Цвет границ (HEX/rgba)
+      <input type="text" name="table_border_color" id="table_border_color" value="{{ template.table_border_color if template else '' }}" placeholder="#1f2937 или rgba(31,41,55,0.5)" />
+      <small class="help-text">Введите HEX (#RRGGBB) или rgba(r,g,b,a).</small>
+    </label>
+    <label style="flex:1">
+      Прозрачность границ
+      <input type="number" name="table_border_alpha" step="0.01" min="0" max="1" value="{{ template.table_border_alpha if template and template.table_border_alpha is not none else '' }}" placeholder="0.50" />
+      <small class="help-text">0.0 – 1.0. По умолчанию 0.50.</small>
+    </label>
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="button primary">Сохранить</button>
+    <a class="button" href="/admin/templates">Отмена</a>
+  </div>
+</form>
+{% endblock %}

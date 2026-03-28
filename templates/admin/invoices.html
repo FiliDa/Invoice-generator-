@@ -1,0 +1,24 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<h2>Сгенерированные инвойсы</h2>
+<table class="table">
+  <thead>
+    <tr>
+      <th>Файл</th>
+      <th>Размер (КБ)</th>
+      <th>Дата</th>
+      <th>Ссылка</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for f in files %}
+    <tr>
+      <td>{{ f.name }}</td>
+      <td>{{ f.size_kb }}</td>
+      <td>{{ f.mtime }}</td>
+      <td><a href="{{ f.url }}" target="_blank">Скачать</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
